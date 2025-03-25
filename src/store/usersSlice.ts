@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "./store";
 
-interface User {
+type User = {
   id: string;
   name: string;
   email: string;
@@ -9,43 +9,43 @@ interface User {
   location: string;
   phone: string;
   age: number;
-}
+};
 
-interface UsersState {
-  usersByPage: Record<number, User[]>; // Almacena usuarios por página
+type UsersState = {
+  usersByPage: Record<number, User[]>;
   status: "idle" | "loading" | "failed";
-}
+};
 
 const initialState: UsersState = {
   usersByPage: {},
   status: "idle",
 };
 
-export const fetchUsers = createAsyncThunk(
+const USERS_PER_PAGE = 5;
+
+export const fetchUsers = createAsyncThunk<{ page: number; users: User[] }, number>(
   "users/fetchUsers",
-  async (page: number) => {
-    const usersPerPage = 5;
+  async (page) => {
     const response = await fetch(
-      `https://randomuser.me/api/?results=${usersPerPage}&page=${page}`
+      `https://randomuser.me/api/?results=${USERS_PER_PAGE}&page=${page}`
     );
     const data = await response.json();
 
-    return {
-      page,
-      users: data.results.map((user: any) => ({
-        id: user.login.uuid,
-        name: `${user.name.first} ${user.name.last}`,
-        email: user.email,
-        avatar: user.picture.medium,
-        location: `${user.location.city}, ${user.location.country}`,
-        phone: user.phone,
-        age: user.dob.age,
-      })),
-    };
+    const users: User[] = data.results.map((user: { login: { uuid: string }; name: { first: string; last: string }; email: string; picture: { medium: string }; location: { city: string; country: string }; phone: string; dob: { age: number } }) => ({
+      id: user.login.uuid,
+      name: `${user.name.first} ${user.name.last}`,
+      email: user.email,
+      avatar: user.picture.medium,
+      location: `${user.location.city}, ${user.location.country}`,
+      phone: user.phone,
+      age: user.dob.age,
+    }));
+
+    return { page, users };
   }
 );
 
-export const usersSlice = createSlice({
+const usersSlice = createSlice({
   name: "users",
   initialState,
   reducers: {},
@@ -54,20 +54,16 @@ export const usersSlice = createSlice({
       .addCase(fetchUsers.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(
-        fetchUsers.fulfilled,
-        (state, action: PayloadAction<{ page: number; users: User[] }>) => {
-          state.status = "idle";
-          state.usersByPage[action.payload.page] = action.payload.users;
-        }
-      )
+      .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<{ page: number; users: User[] }>) => {
+        state.status = "idle";
+        state.usersByPage[action.payload.page] = action.payload.users;
+      })
       .addCase(fetchUsers.rejected, (state) => {
         state.status = "failed";
       });
   },
 });
 
-export const selectUsersByPage = (state: RootState, page: number) =>
-  state.users.usersByPage[page] || [];
+export const selectUsersByPage = (state: RootState, page: number): User[] => state.users.usersByPage[page] || [];
 
 export default usersSlice.reducer;
