@@ -1,43 +1,40 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
-import { fetchUsers, selectUsers } from "../store/usersSlice";
+import { fetchUsers, selectUsersByPage } from "../store/usersSlice";
 
 const UserList = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const users = useSelector(selectUsers);
+  const [page, setPage] = useState(1);
+
+  const users = useSelector((state: RootState) =>
+    selectUsersByPage(state, page)
+  );
   const status = useSelector((state: RootState) => state.users.status);
 
-  const [page, setPage] = useState(1); // Página actual
-
   useEffect(() => {
-    dispatch(fetchUsers(page));
-  }, [dispatch, page]);
+    if (users.length === 0) {
+      dispatch(fetchUsers(page));
+    }
+  }, [dispatch, page, users.length]);
 
-  const nextPage = () => {
-    setPage((prevPage) => prevPage + 1);
-  };
-
-  const prevPage = () => {
-    if (page > 1) setPage((prevPage) => prevPage - 1);
-  };
-
-  if (status === "loading")
-    return <p className="text-center text-gray-500">Cargando usuarios...</p>;
-
-  if (users.length === 0) {
-    return <p className="text-center text-gray-500">No hay más usuarios .</p>;
-  }
-  if (status === "failed")
-    return (
-      <p className="text-center text-red-500">Error al cargar usuarios.</p>
-    );
+  const nextPage = () => setPage((prevPage) => prevPage + 1);
+  const prevPage = () => setPage((prevPage) => Math.max(prevPage - 1, 1));
 
   return (
     <div className="max-w-lg mx-auto mt-5 p-6 bg-white shadow-lg rounded-xl font-lexend">
-      <h2 className="text-2xl font-bold text-center mb-6 text-light-blue">
+      <h2 className="text-2xl font-bold text-center mb-6 text-blue-500">
         Lista de Usuarios
       </h2>
+
+      {status === "loading" && users.length === 0 && (
+        <p className="text-center text-gray-500">Cargando usuarios...</p>
+      )}
+
+      {users.length === 0 && status !== "loading" && (
+        <p className="text-center text-gray-500">No hay más usuarios.</p>
+      )}
+
       <ul className="divide-y divide-gray-200">
         {users.map((user) => (
           <li key={user.id} className="py-4 flex items-center space-x-4">
@@ -70,7 +67,7 @@ const UserList = () => {
           className={`px-4 py-2 rounded-lg ${
             page === 1
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-light-purple hover:bg-purple-700 text-white transition-colors"
+              : "bg-purple-400 hover:bg-purple-700 text-white"
           }`}
         >
           Atrás
@@ -80,7 +77,7 @@ const UserList = () => {
 
         <button
           onClick={nextPage}
-          className="px-4 py-2 rounded-lg bg-light-green hover:bg-green-700 text-white transition-colors"
+          className="px-4 py-2 rounded-lg bg-green-400 text-white hover:bg-green-700"
         >
           Siguiente
         </button>
