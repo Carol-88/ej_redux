@@ -1,25 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
-import { fetchUsers, selectUsersByPage } from "../store/usersSlice";
+import {
+  fetchUsers,
+  selectCurrentPage,
+  selectUsersByPage,
+  setPage,
+} from "../store/usersSlice";
+import { UserCard } from "./UserCard";
 
-const UserList = () => {
+export const UserList = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const [page, setPage] = useState(1);
-
+  const page = useSelector(selectCurrentPage);
   const users = useSelector((state: RootState) =>
     selectUsersByPage(state, page)
   );
   const status = useSelector((state: RootState) => state.users.status);
 
   useEffect(() => {
-    if (users.length === 0) {
+    if (!users.length) {
       dispatch(fetchUsers(page));
     }
   }, [dispatch, page, users.length]);
 
-  const nextPage = () => setPage((prevPage) => prevPage + 1);
-  const prevPage = () => setPage((prevPage) => Math.max(prevPage - 1, 1));
+  const nextPage = () => dispatch(setPage(page + 1));
+  const prevPage = () => dispatch(setPage(Math.max(page - 1, 1)));
 
   return (
     <div className="max-w-lg mx-auto mt-5 p-6 bg-white shadow-lg rounded-xl font-lexend">
@@ -31,32 +36,13 @@ const UserList = () => {
         <p className="text-center text-gray-500">Cargando usuarios...</p>
       )}
 
-      {users.length === 0 && status !== "loading" && (
+      {!users.length && status !== "loading" && (
         <p className="text-center text-gray-500">No hay más usuarios.</p>
       )}
 
       <ul className="divide-y divide-gray-200">
         {users.map((user) => (
-          <li key={user.id} className="py-4 flex items-center space-x-4">
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-14 h-14 rounded-full"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-lg font-semibold text-gray-900 truncate">
-                {user.name}
-              </p>
-              <p className="text-sm text-gray-500 truncate">{user.email}</p>
-              <p className="text-sm text-gray-600 truncate">
-                📍 {user.location}
-              </p>
-              <p className="text-sm text-gray-600 truncate">📞 {user.phone}</p>
-              <p className="text-sm text-gray-600 truncate">
-                🎂 {user.age} años
-              </p>
-            </div>
-          </li>
+          <UserCard key={user.id} user={user} />
         ))}
       </ul>
 
@@ -85,5 +71,3 @@ const UserList = () => {
     </div>
   );
 };
-
-export default UserList;
